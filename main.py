@@ -1,4 +1,5 @@
 import time
+import os
 from ppadb.client import Client as AdbClient
 import cv2
 
@@ -21,13 +22,33 @@ activity_name = "com.instagram.mainactivity.MainActivity"
 
 device.shell(f"am start -n {package_name}/{activity_name}")
 
+
+def prepare_screenshot_directory():
+    # ./res/screenshot 폴더가 존재하는 경우 삭제
+    screenshot_dir = "./res/screenshot"
+    if os.path.exists(screenshot_dir):
+        print("스크린샷 폴더 삭제")
+        for filename in os.listdir(screenshot_dir):
+            file_path = os.path.join(screenshot_dir, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f"파일 삭제 오류: {e}")
+
+    # ./res/screenshot 폴더 생성
+    if not os.path.exists(screenshot_dir):
+        os.makedirs(screenshot_dir)
+        print("스크린샷 폴더 생성")
+
 def calculateSimilarity(image_path):
-    # 이미지 파일을 로드
-    screenshot_path = "/sdcard/pic_screenshot.png"
-    screenshot_path_pc = "./res/pic_screenshot.png"
+    # 스크린샷 캡쳐 path 설정
+    current_time = time.strftime("%Y%m%d_%H%M%S")
+    screenshot_path = f"/sdcard/pic_screenshot_{current_time}.png"
+    screenshot_path_pc = f"./res/screenshot/pic_screenshot_{current_time}.png"
 
     # screencap 명령을 사용하여 화면 캡처
-    capture_command = f"screencap /sdcard/screenshot.png"
+    capture_command = f"screencap {screenshot_path}"
 
     # screencap 명령을 사용하여 화면 캡처
     device.shell(capture_command)
@@ -48,27 +69,65 @@ def calculateSimilarity(image_path):
     similarity = max(0.1, min(1, similarity))  # 범위를 0.1~1로 제한
     similarity = int(similarity * 100)
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+
     # 클릭할 좌표 계산 (중심 위치)
     button_center_x = max_loc[0] + image2.shape[1] // 2
     button_center_y = max_loc[1] + image2.shape[0] // 2
+    print(f"유사도: {similarity}")
 
     if similarity >= 95:
         positions = (button_center_x, button_center_y)
-
-        return similarity, positions
-    else:
-        return similarity, (0,0)
-
-while True:
-    # 유사도 계산
-    similarity, xy = calculateSimilarity("./res/pic_signup.png")
-    print("Normalized ", similarity, xy)
-    if similarity >= 95:
         time.sleep(2)
-        print(xy, xy[0], xy[1])
-        device.shell(f"input tap {xy[0]} {xy[1]}")
-        print("클릭했습니다.")
-        break
+        device.shell(f"input tap {positions[0]} {positions[1]}")
+        print(f"클릭했습니다. {positions[0]} {positions[1]}")
+        return True
     else:
         print("유사한 값이 아닙니다.")
+        return False
+
+prepare_screenshot_directory()
+
+# [가입하기 버튼 클릭]
+while True:
+    if calculateSimilarity("./res/pic_signup.png"):
+        break
+    else:
         continue
+
+time.sleep(2)
+
+# [팝업 x]
+device.shell("input keyevent 4")
+
+time.sleep(2)
+
+# [input name]
+signup_name = "seokyeju"
+device.shell(f"input text {signup_name}")
+
+time.sleep(2)
+
+# [click enter]
+device.shell("input keyevent 66")
+
+time.sleep(2)
+
+# [input passward (limit len 6)]
+signup_pw = "testPW2023"
+device.shell(f"input text {signup_pw}")
+
+time.sleep(2)
+
+# [image 다음 - pic_next_password.png]
+calculateSimilarity("./res/pic_next_password.png")
+
+time.sleep(2)
+
+# [image 나중에 - pic_later_savelogin.png]
+calculateSimilarity("./res/pic_later_savelogin.png")
+
+time.sleep(2)
+
+# [drag 날짜 설정]
+
+
