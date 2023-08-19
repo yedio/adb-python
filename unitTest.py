@@ -2,6 +2,8 @@ import time
 import os
 from ppadb.client import Client as AdbClient
 import cv2
+import datetime
+
 
 # LDPlayer 에뮬레이터의 IP 주소와 포트
 emulator_ip = "127.0.0.1"
@@ -22,12 +24,6 @@ activity_name = "com.instagram.mainactivity.MainActivity"
 
 device.shell(f"am start -n {package_name}/{activity_name}")
 
-time.sleep(2)
+print("start")
 
 # unit test 시작
-screenshot_path = "/sdcard/pic_screenshot.png"
-screenshot_path_pc = "./res/pic_screenshot.png"
-
-if os.path.exists(screenshot_path_pc):
-    print(f"스크린샷 파일 삭제.{os.path.exists(screenshot_path_pc)}")
-    os.remove(screenshot_path_pc)
